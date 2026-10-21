@@ -3,7 +3,7 @@
 set -u
 BASE="http://localhost:5000"
 ADMIN_EMAIL="${SMOKE_ADMIN_EMAIL:-admin@spare.com}"
-ADMIN_PWD="${SMOKE_ADMIN_PWD:-Admin@123456}"
+ADMIN_PWD="${SMOKE_ADMIN_PWD:-123456}"
 FAIL=0
 report() { local code="$1" name="$2" ok="$3"; if [ "$ok" = "ok" ]; then echo "[PASS] $name"; else echo "[FAIL] $name"; FAIL=1; fi; }
 

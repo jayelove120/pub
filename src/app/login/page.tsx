@@ -20,13 +20,15 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      toast.error('请输入邮箱和密码');
+      toast.error('请输入账号和密码');
       return;
     }
     setLoading(true);
     try {
+      // 支持用户名登录：无 @ 时自动补全企业域名
+      const account = email.includes('@') ? email : `${email}@spare.com`;
       const client = await getSupabaseBrowserClientAsync();
-      const { error } = await client.auth.signInWithPassword({ email, password });
+      const { error } = await client.auth.signInWithPassword({ email: account, password });
       if (error) throw new Error(error.message);
       toast.success('登录成功');
       router.push('/');
@@ -54,21 +56,21 @@ export default function LoginPage() {
         <Card className="border-neutral-200 shadow-sm">
           <CardHeader className="pb-4">
             <CardTitle className="text-base text-neutral-900">账号登录</CardTitle>
-            <CardDescription className="text-sm text-neutral-500">使用企业邮箱账号登录系统</CardDescription>
+            <CardDescription className="text-sm text-neutral-500">使用账号或企业邮箱登录系统</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="email" className="text-sm text-neutral-700">
-                  邮箱
+                  账号
                 </Label>
                 <Input
                   id="email"
-                  type="email"
-                  placeholder="admin@spare.com"
+                  type="text"
+                  placeholder="admin"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
+                  autoComplete="username"
                   className="h-10"
                 />
               </div>
@@ -97,9 +99,9 @@ export default function LoginPage() {
                 <PackageSearch className="h-3.5 w-3.5" /> 演示账号
               </p>
               <p>
-                系统管理员：admin@spare.com / Admin@123456
+                系统管理员：admin / 123456
                 <br />
-                设备管理员：operator@spare.com / Operator@123456
+                设备管理员：fuping / 123456
               </p>
             </div>
           </CardContent>
