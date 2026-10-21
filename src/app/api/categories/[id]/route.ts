@@ -11,7 +11,6 @@ async function handleUpdate(req: NextRequest, ctx: { params: Promise<{ id: strin
     const { id } = await ctx.params;
     const body = await parseBody<{
       name?: string;
-      level?: number;
       description?: string;
       sort_order?: number;
       is_active?: boolean;
@@ -23,7 +22,6 @@ async function handleUpdate(req: NextRequest, ctx: { params: Promise<{ id: strin
       .from('spare_part_categories')
       .update({
         name: body.name !== undefined ? String(body.name).trim() : undefined,
-        level: body.level !== undefined ? Number(body.level) : undefined,
         description: body.description,
         sort_order: body.sort_order !== undefined ? Number(body.sort_order) || 0 : undefined,
         is_active: body.is_active,

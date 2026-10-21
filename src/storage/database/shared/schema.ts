@@ -40,22 +40,29 @@ export const profiles = pgTable(
   ]
 );
 
-// 备件分类表
-export const sparePartCategories = pgTable(
-  "spare_part_categories",
-  {
-    id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
-    name: varchar("name", { length: 128 }).notNull(),
-    level: integer("level").notNull().default(1), // 1-一级 2-二级 3-三级
-    description: text("description"),
-    sort_order: integer("sort_order").notNull().default(0),
-    is_active: boolean("is_active").default(true).notNull(),
-    created_by: varchar("created_by", { length: 36 }),
-    created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updated_at: timestamp("updated_at", { withTimezone: true }),
-  },
-  (table) => [index("spare_part_categories_level_idx").on(table.level)]
-);
+// 备件分类表（类别标签，如：机械类、电气类）
+export const sparePartCategories = pgTable("spare_part_categories", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 128 }).notNull(),
+  description: text("description"),
+  sort_order: integer("sort_order").notNull().default(0),
+  is_active: boolean("is_active").default(true).notNull(),
+  created_by: varchar("created_by", { length: 36 }),
+  created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updated_at: timestamp("updated_at", { withTimezone: true }),
+});
+
+// 备件分级表（级别标签，如：关键件、重要件、一般件）
+export const sparePartLevels = pgTable("spare_part_levels", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 128 }).notNull(),
+  description: text("description"),
+  sort_order: integer("sort_order").notNull().default(0),
+  is_active: boolean("is_active").default(true).notNull(),
+  created_by: varchar("created_by", { length: 36 }),
+  created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updated_at: timestamp("updated_at", { withTimezone: true }),
+});
 
 // 供应商表
 export const suppliers = pgTable(
@@ -83,6 +90,7 @@ export const materials = pgTable(
     name: varchar("name", { length: 255 }).notNull(),
     spec: varchar("spec", { length: 255 }),
     category_id: varchar("category_id", { length: 36 }).references(() => sparePartCategories.id),
+    level_id: varchar("level_id", { length: 36 }).references(() => sparePartLevels.id),
     unit: varchar("unit", { length: 16 }).notNull().default("个"),
     unit_price: numeric("unit_price", { precision: 12, scale: 2 }).notNull().default("0"),
     safety_stock: integer("safety_stock").notNull().default(0),
@@ -96,6 +104,7 @@ export const materials = pgTable(
   (table) => [
     uniqueIndex("materials_code_idx").on(table.code),
     index("materials_category_id_idx").on(table.category_id),
+    index("materials_level_id_idx").on(table.level_id),
     index("materials_default_supplier_id_idx").on(table.default_supplier_id),
     index("materials_is_active_idx").on(table.is_active),
   ]

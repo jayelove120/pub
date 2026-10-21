@@ -31,6 +31,7 @@ interface InvRow {
     storage_location?: string;
     is_active: boolean;
     categories?: { name?: string } | null;
+    levels?: { name?: string } | null;
     default_supplier?: { name?: string } | null;
   } | null;
 }
@@ -147,7 +148,8 @@ export default function InventoryPage() {
               <TableRow>
                 <TableHead>编码</TableHead>
                 <TableHead>名称 / 规格</TableHead>
-                <TableHead>分类</TableHead>
+                <TableHead>类别</TableHead>
+                <TableHead>级别</TableHead>
                 <TableHead className="text-right">当前库存</TableHead>
                 <TableHead className="text-right">安全库存</TableHead>
                 <TableHead className="text-right">单价</TableHead>
@@ -169,6 +171,9 @@ export default function InventoryPage() {
                       {m?.spec && <p className="text-xs text-neutral-400">{m.spec}</p>}
                     </TableCell>
                     <TableCell>{m?.categories?.name || '-'}</TableCell>
+                    <TableCell>
+                      {m?.levels?.name ? <Badge variant="outline">{m.levels.name}</Badge> : '-'}
+                    </TableCell>
                     <TableCell className={`text-right tabular-nums ${low ? 'font-semibold text-rose-600' : ''}`}>{inv.quantity}</TableCell>
                     <TableCell className="text-right tabular-nums text-neutral-500">{m?.safety_stock ?? 0}</TableCell>
                     <TableCell className="text-right tabular-nums">¥{Number(m?.unit_price ?? 0).toFixed(2)}</TableCell>

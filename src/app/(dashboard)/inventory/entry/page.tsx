@@ -21,6 +21,7 @@ interface MaterialOpt {
   safety_stock: number;
   default_supplier_id?: string;
   categories?: { name?: string } | null;
+  levels?: { name?: string } | null;
   inventory?: { quantity?: number } | null;
 }
 
@@ -194,7 +195,8 @@ export default function EntryPage() {
             <div className="mb-4 grid grid-cols-2 gap-x-4 gap-y-2 rounded-md bg-neutral-50 p-3 text-[13px] sm:grid-cols-3">
               <InfoItem label="编码" value={selected.code} />
               <InfoItem label="规格型号" value={selected.spec || '-'} />
-              <InfoItem label="分类" value={selected.categories?.name || '-'} />
+              <InfoItem label="类别" value={selected.categories?.name || '-'} />
+              <InfoItem label="级别" value={selected.levels?.name || '-'} />
               <InfoItem label="单位" value={selected.unit} />
               <InfoItem label="当前库存" value={`${selected.inventory?.quantity ?? 0}`} />
               <InfoItem label="安全库存" value={`${selected.safety_stock}`} />

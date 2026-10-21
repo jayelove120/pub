@@ -60,9 +60,9 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    // 3. 库存分类占比
+    // 3. 库存结构占比（按分类 / 按分级）
     const { data: materials, error: matErr } = await client.from('materials').select(
-      'id, category_id, categories:spare_part_categories(name)',
+      'id, category_id, categories:spare_part_categories(name), levels:spare_part_levels(name)',
     );
     if (matErr) throw new Error(matErr.message);
     const matMap = new Map<string, { name?: string }>();
@@ -71,11 +71,15 @@ export async function GET(req: NextRequest) {
     }
     // 简化处理：查看分类使用情况（以物料数作为占比）
     const catCount: Record<string, number> = {};
+    const levelCount: Record<string, number> = {};
     for (const m of materials ?? []) {
       const name = (m.categories as { name?: string } | null)?.name || '未分类';
       catCount[name] = (catCount[name] || 0) + 1;
+      const lv = (m.levels as { name?: string } | null)?.name || '未分级';
+      levelCount[lv] = (levelCount[lv] || 0) + 1;
     }
     const categoryShare = Object.entries(catCount).map(([name, value]) => ({ name, value }));
+    const levelShare = Object.entries(levelCount).map(([name, value]) => ({ name, value }));
 
     // 4. 预警数量柱状图（按分类）
     const alertShare: Record<string, number> = {};
@@ -111,6 +115,7 @@ export async function GET(req: NextRequest) {
       },
       trend,
       categoryShare,
+      levelShare,
       alertByCategory,
       recentTransactions: recentTx,
       recentAlerts: recentAlerts,

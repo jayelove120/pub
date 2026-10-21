@@ -5,7 +5,7 @@ import { requireAdmin, AuthError } from '@/lib/auth';
 import { writeOperationLog } from '@/lib/store';
 
 const MATERIAL_SELECT =
-  '*, categories:spare_part_categories(id, name, level), default_supplier:suppliers(id, name), inventory(quantity, total_value)';
+  '*, categories:spare_part_categories(id, name), levels:spare_part_levels(id, name), default_supplier:suppliers(id, name), inventory(quantity, total_value)';
 
 export async function GET(req: NextRequest) {
   try {
@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
       name: string;
       spec?: string;
       category_id?: string;
+      level_id?: string;
       unit?: string;
       unit_price?: string | number;
       safety_stock?: number;
@@ -92,6 +93,7 @@ export async function POST(req: NextRequest) {
         name: String(body.name).trim(),
         spec: body.spec || null,
         category_id: body.category_id || null,
+        level_id: body.level_id || null,
         unit: body.unit || '个',
         unit_price: String(unitPrice),
         safety_stock: Number(body.safety_stock ?? 0) || 0,

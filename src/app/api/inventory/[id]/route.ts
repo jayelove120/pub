@@ -3,7 +3,7 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { ok, fail, requireUser, toErrorResponse } from '@/lib/api';
 
 const INVENTORY_SELECT =
-  '*, material:materials(*, categories:spare_part_categories(name, level), default_supplier:suppliers(name))';
+  '*, material:materials(*, categories:spare_part_categories(name), levels:spare_part_levels(name), default_supplier:suppliers(name))';
 
 export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {

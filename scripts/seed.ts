@@ -59,12 +59,12 @@ async function main() {
   const now = new Date();
   const iso = (d: Date) => d.toISOString();
 
-  // 分类
-  const cats: { name: string; level: number; description: string }[] = [
-    { name: '机械类', level: 1, description: '传动、轴承、密封等机械备件' },
-    { name: '电气类', level: 1, description: '电机、接触器、传感器等电气备件' },
-    { name: '液压类', level: 1, description: '油泵、阀件、管路等液压备件' },
-    { name: '仪器仪表', level: 1, description: '测量与检测仪器仪表' },
+  // 分类（类别标签）
+  const cats: { name: string; description: string }[] = [
+    { name: '机械类', description: '传动、轴承、密封等机械备件' },
+    { name: '电气类', description: '电机、接触器、传感器等电气备件' },
+    { name: '液压类', description: '油泵、阀件、管路等液压备件' },
+    { name: '仪器仪表', description: '测量与检测仪器仪表' },
   ];
   const catIds: Record<string, string> = {};
   for (const c of cats) {
@@ -74,6 +74,23 @@ async function main() {
     } else {
       const r = await client.from('spare_part_categories').insert({ ...c, created_by: adminId }).select().single();
       catIds[c.name] = r.data.id;
+    }
+  }
+
+  // 分级（级别标签）
+  const lvls: { name: string; description: string; sort_order: number }[] = [
+    { name: '关键件', description: '停机影响大的核心备件', sort_order: 1 },
+    { name: '重要件', description: '影响生产效率的重要备件', sort_order: 2 },
+    { name: '一般件', description: '通用易损备件', sort_order: 3 },
+  ];
+  const lvlIds: Record<string, string> = {};
+  for (const l of lvls) {
+    const { data } = await client.from('spare_part_levels').select('id').eq('name', l.name).maybeSingle();
+    if (data) {
+      lvlIds[l.name] = data.id;
+    } else {
+      const r = await client.from('spare_part_levels').insert({ ...l, created_by: adminId }).select().single();
+      lvlIds[l.name] = r.data.id;
     }
   }
 
@@ -96,20 +113,27 @@ async function main() {
 
   // 物料 + 库存 + 部分出入库记录 + 预警
   const materials = [
-    { code: 'JX-001', name: '深沟球轴承 6205', spec: '6205-2RS', cat: '机械类', unit: '个', price: 25, safety: 30, sup: '华东传动设备有限公司', loc: 'A区-03架', qty: 18 },
-    { code: 'JX-002', name: 'V型密封圈', spec: 'Φ40×Φ55×8', cat: '机械类', unit: '个', price: 6.5, safety: 100, sup: '华东传动设备有限公司', loc: 'A区-05架', qty: 320 },
-    { code: 'DQ-001', name: '交流接触器', spec: 'CJX2-1210 36V', cat: '电气类', unit: '个', price: 58, safety: 20, sup: '宏泰电气配件厂', loc: 'B区-01架', qty: 12 },
-    { code: 'DQ-002', name: '光电传感器', spec: 'E3F-DS30C4', cat: '电气类', unit: '个', price: 45, safety: 15, sup: '宏泰电气配件厂', loc: 'B区-02架', qty: 80 },
-    { code: 'YY-001', name: '齿轮油泵', spec: 'CB-B10', cat: '液压类', unit: '台', price: 320, safety: 5, sup: '力士液压科技', loc: 'C区-01架', qty: 3 },
-    { code: 'YY-002', name: '高压油管', spec: 'DN25×1.5m', cat: '液压类', unit: '根', price: 96, safety: 10, sup: '力士液压科技', loc: 'C区-03架', qty: 40 },
-    { code: 'YQ-001', name: '数显游标卡尺', spec: '0-150mm 0.01', cat: '仪器仪表', unit: '把', price: 120, safety: 6, sup: '宏泰电气配件厂', loc: 'D区-01架', qty: 8 },
+    { code: 'JX-001', name: '深沟球轴承 6205', spec: '6205-2RS', cat: '机械类', lvl: '关键件', unit: '个', price: 25, safety: 30, sup: '华东传动设备有限公司', loc: 'A区-03架', qty: 18 },
+    { code: 'JX-002', name: 'V型密封圈', spec: 'Φ40×Φ55×8', cat: '机械类', lvl: '一般件', unit: '个', price: 6.5, safety: 100, sup: '华东传动设备有限公司', loc: 'A区-05架', qty: 320 },
+    { code: 'DQ-001', name: '交流接触器', spec: 'CJX2-1210 36V', cat: '电气类', lvl: '重要件', unit: '个', price: 58, safety: 20, sup: '宏泰电气配件厂', loc: 'B区-01架', qty: 12 },
+    { code: 'DQ-002', name: '光电传感器', spec: 'E3F-DS30C4', cat: '电气类', lvl: '一般件', unit: '个', price: 45, safety: 15, sup: '宏泰电气配件厂', loc: 'B区-02架', qty: 80 },
+    { code: 'YY-001', name: '齿轮油泵', spec: 'CB-B10', cat: '液压类', lvl: '关键件', unit: '台', price: 320, safety: 5, sup: '力士液压科技', loc: 'C区-01架', qty: 3 },
+    { code: 'YY-002', name: '高压油管', spec: 'DN25×1.5m', cat: '液压类', lvl: '一般件', unit: '根', price: 96, safety: 10, sup: '力士液压科技', loc: 'C区-03架', qty: 40 },
+    { code: 'YQ-001', name: '数显游标卡尺', spec: '0-150mm 0.01', cat: '仪器仪表', lvl: '重要件', unit: '把', price: 120, safety: 6, sup: '宏泰电气配件厂', loc: 'D区-01架', qty: 8 },
   ];
 
   for (const m of materials) {
-    const { data: existing } = await client.from('materials').select('id').eq('code', m.code).maybeSingle();
+    const { data: existing } = await client.from('materials').select('id, level_id, category_id').eq('code', m.code).maybeSingle();
     let materialId: string;
     if (existing) {
       materialId = existing.id;
+      // 迁移：为已有物料补充分类/分级
+      const patch: Record<string, string> = {};
+      if (!existing.level_id && lvlIds[m.lvl]) patch.level_id = lvlIds[m.lvl];
+      if (!existing.category_id && catIds[m.cat]) patch.category_id = catIds[m.cat];
+      if (Object.keys(patch).length > 0) {
+        await client.from('materials').update(patch).eq('id', materialId);
+      }
     } else {
       const r = await client
         .from('materials')
@@ -118,6 +142,7 @@ async function main() {
           name: m.name,
           spec: m.spec,
           category_id: catIds[m.cat],
+          level_id: lvlIds[m.lvl],
           unit: m.unit,
           unit_price: String(m.price),
           safety_stock: m.safety,

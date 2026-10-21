@@ -8,7 +8,7 @@ import { parseCsv } from '@/lib/excel';
 /**
  * 批量导入物料信息。
  * 请求体: { csv: string }，格式：
- * 编码,名称,规格型号,分类名称,单位,单价,安全库存,默认供应商名称,存放位置,备注,初始数量
+ * 编码,名称,规格型号,分类名称,级别名称,单位,单价,安全库存,默认供应商名称,存放位置,备注,初始数量
  */
 export async function POST(req: NextRequest) {
   try {
@@ -23,8 +23,10 @@ export async function POST(req: NextRequest) {
     const client = getSupabaseClient();
 
     const { data: categories } = await client.from('spare_part_categories').select('id, name');
+    const { data: levels } = await client.from('spare_part_levels').select('id, name');
     const { data: suppliers } = await client.from('suppliers').select('id, name');
     const catMap = new Map((categories ?? []).map((c) => [c.name, c.id]));
+    const lvlMap = new Map((levels ?? []).map((l) => [l.name, l.id]));
     const supMap = new Map((suppliers ?? []).map((s) => [s.name, s.id]));
 
     let success = 0;
@@ -32,7 +34,7 @@ export async function POST(req: NextRequest) {
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
-      const [code, name, spec, categoryName, unit, unitPrice, safetyStock, supplierName, location, remark, initialQty] = row;
+      const [code, name, spec, categoryName, levelName, unit, unitPrice, safetyStock, supplierName, location, remark, initialQty] = row;
       const lineNo = i + 1;
       if (!code || !name) {
         errors.push(`第${lineNo}行：编码/名称为空`);
@@ -40,6 +42,7 @@ export async function POST(req: NextRequest) {
       }
 
       const categoryId = categoryName ? catMap.get(categoryName) || null : null;
+      const levelId = levelName ? lvlMap.get(levelName) || null : null;
       const supplierId = supplierName ? supMap.get(supplierName) || null : null;
 
       const { data: material, error: mErr } = await client
@@ -49,6 +52,7 @@ export async function POST(req: NextRequest) {
           name: name.trim(),
           spec: spec?.trim() || null,
           category_id: categoryId,
+          level_id: levelId,
           unit: unit?.trim() || '个',
           unit_price: String(Number(unitPrice) || 0),
           safety_stock: Number(safetyStock) || 0,

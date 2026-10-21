@@ -26,7 +26,6 @@ export async function POST(req: NextRequest) {
     requireAdmin(user);
     const body = await parseBody<{
       name: string;
-      level?: number;
       description?: string;
       sort_order?: number;
       is_active?: boolean;
@@ -40,7 +39,6 @@ export async function POST(req: NextRequest) {
       .from('spare_part_categories')
       .insert({
         name: String(body.name).trim(),
-        level: Number(body.level ?? 1),
         description: body.description || null,
         sort_order: Number(body.sort_order ?? 0) || 0,
         is_active: body.is_active ?? true,
@@ -53,7 +51,7 @@ export async function POST(req: NextRequest) {
     await writeOperationLog({
       user,
       operationType: '新增',
-      content: `新增备件分类「${data.name}」（${data.level}级）`,
+      content: `新增备件分类「${data.name}」`,
       req,
     });
     return ok(data, 201);

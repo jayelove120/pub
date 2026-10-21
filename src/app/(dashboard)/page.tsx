@@ -30,6 +30,7 @@ interface DashboardData {
   metrics: { totalValue: number; totalQuantity: number; pendingAlertCount: number; monthInOut: number };
   trend: { month: string; in: number; out: number }[];
   categoryShare: { name: string; value: number }[];
+  levelShare: { name: string; value: number }[];
   alertByCategory: { name: string; value: number }[];
   recentTransactions: {
     id: string;
@@ -151,6 +152,31 @@ export default function DashboardPage() {
 
         <Card className="border-neutral-200 shadow-sm">
           <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-neutral-700">库存分级占比</CardTitle>
+          </CardHeader>
+          <CardContent className="h-72">
+            {(data?.levelShare?.length ?? 0) === 0 ? (
+              <EmptyState description="暂无分级数据" />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={data!.levelShare} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label>
+                    {data!.levelShare.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 趋势与预警统计 */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card className="border-neutral-200 shadow-sm">
+          <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-neutral-700">近6个月出入库趋势</CardTitle>
           </CardHeader>
           <CardContent className="h-72">
@@ -167,25 +193,24 @@ export default function DashboardPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-      </div>
 
-      {/* 预警统计柱状图 */}
-      <Card className="border-neutral-200 shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-neutral-700">分类预警数量统计</CardTitle>
-        </CardHeader>
-        <CardContent className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data?.alertByCategory ?? []} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Bar dataKey="value" name="预警数量" fill="#e11d48" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+        <Card className="border-neutral-200 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-neutral-700">分类预警数量统计</CardTitle>
+          </CardHeader>
+          <CardContent className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data?.alertByCategory ?? []} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="value" name="预警数量" fill="#e11d48" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* 最近记录 */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

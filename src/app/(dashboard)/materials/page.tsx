@@ -38,6 +38,7 @@ interface Material {
   name: string;
   spec?: string;
   category_id?: string;
+  level_id?: string;
   unit: string;
   unit_price: string;
   safety_stock: number;
@@ -46,6 +47,7 @@ interface Material {
   remark?: string;
   is_active: boolean;
   categories?: { name?: string } | null;
+  levels?: { name?: string } | null;
   default_supplier?: { name?: string } | null;
 }
 
@@ -54,6 +56,7 @@ export default function MaterialsPage() {
   const isAdmin = profile?.role === 'admin';
   const [rows, setRows] = useState<Material[]>([]);
   const [cats, setCats] = useState<{ id: string; name: string }[]>([]);
+  const [lvls, setLvls] = useState<{ id: string; name: string }[]>([]);
   const [sups, setSups] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
@@ -87,8 +90,9 @@ export default function MaterialsPage() {
 
   const loadOptions = useCallback(async () => {
     try {
-      const [c, s] = await Promise.all([api<unknown[]>('/api/categories'), api<unknown[]>('/api/suppliers')]);
+      const [c, l, s] = await Promise.all([api<unknown[]>('/api/categories'), api<unknown[]>('/api/levels'), api<unknown[]>('/api/suppliers')]);
       setCats((c as { id: string; name: string }[]).filter((x) => (x as { is_active?: boolean }).is_active !== false));
+      setLvls((l as { id: string; name: string }[]).filter((x) => (x as { is_active?: boolean }).is_active !== false));
       setSups((s as { id: string; name: string }[]).filter((x) => (x as { is_active?: boolean }).is_active !== false));
     } catch {
       // ignore
@@ -104,7 +108,7 @@ export default function MaterialsPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ code: '', name: '', spec: '', category_id: '', unit: '个', unit_price: '0', safety_stock: '0', default_supplier_id: '', storage_location: '', remark: '' });
+    setForm({ code: '', name: '', spec: '', category_id: '', level_id: '', unit: '个', unit_price: '0', safety_stock: '0', default_supplier_id: '', storage_location: '', remark: '' });
     setOpen(true);
   };
 
@@ -115,6 +119,7 @@ export default function MaterialsPage() {
       name: m.name,
       spec: m.spec ?? '',
       category_id: m.category_id ?? '',
+      level_id: m.level_id ?? '',
       unit: m.unit,
       unit_price: m.unit_price,
       safety_stock: String(m.safety_stock),
@@ -135,6 +140,7 @@ export default function MaterialsPage() {
         name: form.name.trim(),
         spec: form.spec || null,
         category_id: form.category_id || null,
+        level_id: form.level_id || null,
         unit: form.unit || '个',
         unit_price: form.unit_price || '0',
         safety_stock: Number(form.safety_stock) || 0,
@@ -251,7 +257,8 @@ export default function MaterialsPage() {
                 <TableHead>编码</TableHead>
                 <TableHead>名称</TableHead>
                 <TableHead>规格型号</TableHead>
-                <TableHead>分类</TableHead>
+                <TableHead>类别</TableHead>
+                <TableHead>级别</TableHead>
                 <TableHead>单位</TableHead>
                 <TableHead className="text-right">单价</TableHead>
                 <TableHead className="text-right">安全库存</TableHead>
@@ -268,6 +275,9 @@ export default function MaterialsPage() {
                   <TableCell className="font-medium">{m.name}</TableCell>
                   <TableCell className="text-neutral-500">{m.spec || '-'}</TableCell>
                   <TableCell>{m.categories?.name || '-'}</TableCell>
+                  <TableCell>
+                    {m.levels?.name ? <Badge variant="outline">{m.levels.name}</Badge> : '-'}
+                  </TableCell>
                   <TableCell>{m.unit}</TableCell>
                   <TableCell className="text-right tabular-nums">¥{Number(m.unit_price).toFixed(2)}</TableCell>
                   <TableCell className="text-right tabular-nums">{m.safety_stock}</TableCell>
@@ -312,7 +322,7 @@ export default function MaterialsPage() {
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>{editing ? '编辑物料' : '新增物料'}</DialogTitle>
-            <DialogDescription>选择分类与供应商后，可自动带出相关配置信息。</DialogDescription>
+            <DialogDescription>选择类别、级别与供应商，完善物料档案信息。</DialogDescription>
           </DialogHeader>
           <form onSubmit={save} className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -333,16 +343,32 @@ export default function MaterialsPage() {
                 <Input value={form.unit ?? ''} onChange={(e) => setForm({ ...form, unit: e.target.value })} />
               </div>
               <div className="space-y-1.5">
-                <Label>分类</Label>
+                <Label>类别</Label>
                 <Select value={form.category_id || 'none'} onValueChange={(v) => setForm({ ...form, category_id: v === 'none' ? '' : v })}>
                   <SelectTrigger>
-                    <SelectValue placeholder="选择分类" />
+                    <SelectValue placeholder="选择类别" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">无</SelectItem>
                     {cats.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>级别</Label>
+                <Select value={form.level_id || 'none'} onValueChange={(v) => setForm({ ...form, level_id: v === 'none' ? '' : v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择级别" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">无</SelectItem>
+                    {lvls.map((l) => (
+                      <SelectItem key={l.id} value={l.id}>
+                        {l.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

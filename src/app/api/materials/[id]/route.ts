@@ -13,7 +13,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     const { data, error } = await client
       .from('materials')
       .select(
-        '*, categories:spare_part_categories(id, name, level), default_supplier:suppliers(id, name), inventory(quantity, total_value)',
+        '*, categories:spare_part_categories(id, name), levels:spare_part_levels(id, name), default_supplier:suppliers(id, name), inventory(quantity, total_value)',
       )
       .eq('id', id)
       .maybeSingle();
@@ -35,6 +35,7 @@ async function handleUpdate(req: NextRequest, ctx: { params: Promise<{ id: strin
       name?: string;
       spec?: string;
       category_id?: string | null;
+      level_id?: string | null;
       unit?: string;
       unit_price?: string | number;
       safety_stock?: number;
@@ -68,6 +69,7 @@ async function handleUpdate(req: NextRequest, ctx: { params: Promise<{ id: strin
         name: body.name !== undefined ? String(body.name).trim() : undefined,
         spec: body.spec,
         category_id: body.category_id === undefined ? undefined : body.category_id,
+        level_id: body.level_id === undefined ? undefined : body.level_id,
         unit: body.unit,
         unit_price: body.unit_price !== undefined ? String(Number(body.unit_price) || 0) : undefined,
         safety_stock: body.safety_stock !== undefined ? Number(body.safety_stock) || 0 : undefined,

@@ -17,7 +17,6 @@ import { Loader2, Plus, Pencil, Tag } from 'lucide-react';
 interface Category {
   id: string;
   name: string;
-  level: number;
   description?: string;
   sort_order: number;
   is_active: boolean;
@@ -51,12 +50,12 @@ export default function CategoriesPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: '', level: '1', description: '', sort_order: '0' });
+    setForm({ name: '', description: '', sort_order: '0' });
     setOpen(true);
   };
   const openEdit = (c: Category) => {
     setEditing(c);
-    setForm({ name: c.name, level: String(c.level), description: c.description ?? '', sort_order: String(c.sort_order) });
+    setForm({ name: c.name, description: c.description ?? '', sort_order: String(c.sort_order) });
     setOpen(true);
   };
 
@@ -65,7 +64,7 @@ export default function CategoriesPage() {
     if (!form.name?.trim()) return toast.error('请填写分类名称');
     setSaving(true);
     try {
-      const payload = { name: form.name.trim(), level: Number(form.level) || 1, description: form.description, sort_order: Number(form.sort_order) || 0 };
+      const payload = { name: form.name.trim(), description: form.description, sort_order: Number(form.sort_order) || 0 };
       if (editing) {
         await api(`/api/categories/${editing.id}`, { method: 'POST', body: payload });
         toast.success('分类已更新');
@@ -96,8 +95,8 @@ export default function CategoriesPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-neutral-900">分类分级管理</h1>
-          <p className="text-sm text-neutral-500">配置备件分类与分级（一级 / 二级 / 三级）</p>
+          <h1 className="text-lg font-semibold text-neutral-900">分类管理</h1>
+          <p className="text-sm text-neutral-500">维护备件类别标签（如：机械类、电气类），供物料建档时选择</p>
         </div>
         {isAdmin && (
           <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700">
@@ -130,9 +129,7 @@ export default function CategoriesPage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-neutral-900">{c.name}</p>
-                      <p className="text-xs text-neutral-400">
-                        {c.level}级分类 · 排序 {c.sort_order}
-                      </p>
+                      <p className="text-xs text-neutral-400">排序 {c.sort_order}</p>
                     </div>
                   </div>
                   <Badge variant={c.is_active ? 'default' : 'secondary'}>{c.is_active ? '启用' : '停用'}</Badge>
@@ -164,22 +161,16 @@ export default function CategoriesPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editing ? '编辑分类' : '新增分类'}</DialogTitle>
-            <DialogDescription>设置分类名称、分级与排序。</DialogDescription>
+            <DialogDescription>设置分类名称与排序。</DialogDescription>
           </DialogHeader>
           <form onSubmit={save} className="space-y-4">
             <div className="space-y-1.5">
               <Label>分类名称</Label>
               <Input value={form.name ?? ''} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="如 机械类" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>分级</Label>
-                <Input type="number" min={1} value={form.level ?? ''} onChange={(e) => setForm({ ...form, level: e.target.value })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>排序</Label>
-                <Input type="number" value={form.sort_order ?? ''} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} />
-              </div>
+            <div className="space-y-1.5">
+              <Label>排序</Label>
+              <Input type="number" value={form.sort_order ?? ''} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} />
             </div>
             <div className="space-y-1.5">
               <Label>描述</Label>
