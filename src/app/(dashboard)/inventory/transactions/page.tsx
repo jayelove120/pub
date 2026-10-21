@@ -79,12 +79,12 @@ export default function TransactionsPage() {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input placeholder="搜索物料或操作人" value={keyword} onChange={(e) => { setKeyword(e.target.value); setPage(1); }} className="pl-8" />
             </div>
-            <Select value={type} onValueChange={(v) => { setType(v); setPage(1); }}>
+            <Select value={type || 'all'} onValueChange={(v) => { setType(v === 'all' ? '' : v); setPage(1); }}>
               <SelectTrigger className="w-[120px]">
                 <SelectValue placeholder="全部类型" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">全部类型</SelectItem>
+                <SelectItem value="all">全部类型</SelectItem>
                 <SelectItem value="1">入库</SelectItem>
                 <SelectItem value="2">出库</SelectItem>
               </SelectContent>

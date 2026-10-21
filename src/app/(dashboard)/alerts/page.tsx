@@ -84,10 +84,10 @@ export default function AlertsPage() {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input placeholder="搜索物料编码或名称" value={keyword} onChange={(e) => { setKeyword(e.target.value); setPage(1); }} className="pl-8" />
             </div>
-            <Select value={status} onValueChange={(v) => { setStatus(v); setPage(1); }}>
+            <Select value={status || 'all'} onValueChange={(v) => { setStatus(v === 'all' ? '' : v); setPage(1); }}>
               <SelectTrigger className="w-[140px]"><SelectValue placeholder="全部状态" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">全部状态</SelectItem>
+                <SelectItem value="all">全部状态</SelectItem>
                 <SelectItem value="unprocessed">未处理</SelectItem>
                 <SelectItem value="processed">已处理</SelectItem>
               </SelectContent>
