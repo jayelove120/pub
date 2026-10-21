@@ -22,6 +22,7 @@ interface MaterialOpt {
   default_supplier_id?: string;
   categories?: { name?: string } | null;
   levels?: { name?: string } | null;
+  material_suppliers?: { supplier_id?: string; supplier?: { id?: string; name?: string } | null }[];
   inventory?: { quantity?: number } | null;
 }
 
@@ -63,7 +64,16 @@ export default function EntryPage() {
 
   useEffect(() => {
     if (selected) setUnitPrice(selected.unit_price);
-    setSupplierId(selected?.default_supplier_id ?? '');
+    // 供应商默认带出：优先物料默认供应商（须在其关联列表内），否则取关联列表第一个
+    const linkedIds = (selected?.material_suppliers ?? [])
+      .map((ms) => ms.supplier?.id ?? ms.supplier_id)
+      .filter((x): x is string => !!x);
+    const dft = selected?.default_supplier_id ?? '';
+    if (linkedIds.length > 0) {
+      setSupplierId(linkedIds.includes(dft) ? dft : linkedIds[0]);
+    } else {
+      setSupplierId(dft);
+    }
   }, [selected]);
 
   useEffect(() => {
@@ -79,6 +89,15 @@ export default function EntryPage() {
     if (!kw) return materials;
     return materials.filter((m) => m.code.toLowerCase().includes(kw) || m.name.toLowerCase().includes(kw) || m.spec?.toLowerCase().includes(kw));
   }, [materials, search]);
+
+  // 可选供应商：选中物料后限定为其关联供应商；无关联时回退全部供应商（兼容旧数据）
+  const availableSuppliers = useMemo<SupplierOpt[]>(() => {
+    if (!selected) return suppliers;
+    const linked = (selected.material_suppliers ?? [])
+      .map((ms) => ({ id: ms.supplier?.id ?? ms.supplier_id ?? '', name: ms.supplier?.name ?? '' }))
+      .filter((x) => x.id && x.name);
+    return linked.length > 0 ? linked : suppliers;
+  }, [selected, suppliers]);
 
   const totalAmount = (Number(quantity) || 0) * (Number(unitPrice) || 0);
   const outExceed = type === 2 && selected && (Number(quantity) || 0) > (selected.inventory?.quantity ?? 0);
@@ -230,14 +249,14 @@ export default function EntryPage() {
                 />
               </div>
               <div className="space-y-1.5 sm:col-span-2">
-                <Label>供应商（可空）</Label>
+                <Label>供应商（该物料关联的供应商，可空）</Label>
                 <select
                   value={supplierId}
                   onChange={(e) => setSupplierId(e.target.value)}
                   className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm"
                 >
-                  <option value="">默认供应商</option>
-                  {suppliers.map((s) => (
+                  <option value="">不指定供应商</option>
+                  {availableSuppliers.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}
                     </option>

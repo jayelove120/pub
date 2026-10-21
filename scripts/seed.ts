@@ -205,6 +205,24 @@ async function main() {
     }
   }
 
+  // 迁移：将物料的默认供应商同步到物料-供应商关联表（幂等）
+  const { data: matsWithSup } = await client
+    .from('materials')
+    .select('id, default_supplier_id')
+    .not('default_supplier_id', 'is', null);
+  for (const m of matsWithSup ?? []) {
+    const { data: link } = await client
+      .from('material_suppliers')
+      .select('id')
+      .eq('material_id', m.id)
+      .eq('supplier_id', m.default_supplier_id)
+      .maybeSingle();
+    if (!link) {
+      await client.from('material_suppliers').insert({ material_id: m.id, supplier_id: m.default_supplier_id });
+    }
+  }
+  console.log('[seed] 物料-供应商关联已同步');
+
   console.log('[seed] 演示数据初始化完成');
 }
 

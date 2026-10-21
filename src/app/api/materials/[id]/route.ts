@@ -13,7 +13,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     const { data, error } = await client
       .from('materials')
       .select(
-        '*, categories:spare_part_categories(id, name), levels:spare_part_levels(id, name), default_supplier:suppliers(id, name), inventory(quantity, total_value)',
+        '*, categories:spare_part_categories(id, name), levels:spare_part_levels(id, name), default_supplier:suppliers(id, name), material_suppliers(supplier:suppliers(id, name)), inventory(quantity, total_value)',
       )
       .eq('id', id)
       .maybeSingle();
@@ -40,6 +40,7 @@ async function handleUpdate(req: NextRequest, ctx: { params: Promise<{ id: strin
       unit_price?: string | number;
       safety_stock?: number;
       default_supplier_id?: string | null;
+      supplier_ids?: string[];
       storage_location?: string;
       remark?: string;
       is_active?: boolean;
@@ -84,6 +85,30 @@ async function handleUpdate(req: NextRequest, ctx: { params: Promise<{ id: strin
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!data) return fail('物料不存在', 404);
+
+    // 重建物料-供应商关联（传了 supplier_ids 才变更）
+    if (body.supplier_ids !== undefined) {
+      const supplierIds = [...new Set((body.supplier_ids ?? []).filter((s) => typeof s === 'string' && s))];
+      const { error: delErr } = await client.from('material_suppliers').delete().eq('material_id', id);
+      if (delErr) throw new Error(delErr.message);
+      if (supplierIds.length > 0) {
+        const { error: insErr } = await client.from('material_suppliers').insert(
+          supplierIds.map((sid) => ({ material_id: id, supplier_id: sid })),
+        );
+        if (insErr) throw new Error(`关联供应商失败: ${insErr.message}`);
+      }
+      // 默认供应商不在新关联列表中时，回退为列表第一个（或清空）
+      const nextDefault =
+        body.default_supplier_id !== undefined
+          ? body.default_supplier_id
+          : data.default_supplier_id;
+      if (nextDefault && !supplierIds.includes(nextDefault)) {
+        await client
+          .from('materials')
+          .update({ default_supplier_id: supplierIds[0] ?? null, updated_at: now })
+          .eq('id', id);
+      }
+    }
 
     // 同步更新库存总价值（单价变动时）
     if (body.unit_price !== undefined) {

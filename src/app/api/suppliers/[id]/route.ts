@@ -81,6 +81,16 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
       return fail('该供应商已被物料引用，无法删除，可改为停用', 409);
     }
 
+    const { data: linked, error: linkErr } = await client
+      .from('material_suppliers')
+      .select('id')
+      .eq('supplier_id', id)
+      .limit(1);
+    if (linkErr) throw new Error(linkErr.message);
+    if (linked && linked.length > 0) {
+      return fail('该供应商已关联到物料，无法删除，可改为停用', 409);
+    }
+
     const { error } = await client.from('suppliers').delete().eq('id', id);
     if (error) throw new Error(error.message);
 

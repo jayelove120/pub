@@ -110,6 +110,25 @@ export const materials = pgTable(
   ]
 );
 
+// 物料-供应商关联表（一个物料可对应多家供应商）
+export const materialSuppliers = pgTable(
+  "material_suppliers",
+  {
+    id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+    material_id: varchar("material_id", { length: 36 })
+      .notNull()
+      .references(() => materials.id, { onDelete: "cascade" }),
+    supplier_id: varchar("supplier_id", { length: 36 })
+      .notNull()
+      .references(() => suppliers.id),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("material_suppliers_pair_idx").on(table.material_id, table.supplier_id),
+    index("material_suppliers_supplier_id_idx").on(table.supplier_id),
+  ]
+);
+
 // 库存表（与物料一一对应）
 export const inventory = pgTable(
   "inventory",

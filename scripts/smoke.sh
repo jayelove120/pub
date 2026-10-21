@@ -69,7 +69,7 @@ sup_id=$(jget "id")
   SP=$(api_post "/api/suppliers/$sup_id" '{"contact_phone":"13800000000"}')
   [ "$SP" = "200" ] && report "$SP" "PUT /api/suppliers" ok || report "$SP" "PUT /api/suppliers (body=$(head -c 160 /tmp/o))" fail
 }
-MC=$(api_post "/api/materials" "{\"code\":\"SMK-$(date +%s)\",\"name\":\"冒烟测试物料\",\"category_id\":\"${cat_id:-}\",\"level_id\":\"${lvl_id:-}\",\"default_supplier_id\":\"${sup_id:-}\",\"unit_price\":10.5,\"safety_stock\":3}")
+MC=$(api_post "/api/materials" "{\"code\":\"SMK-$(date +%s)\",\"name\":\"冒烟测试物料\",\"category_id\":\"${cat_id:-}\",\"level_id\":\"${lvl_id:-}\",\"default_supplier_id\":\"${sup_id:-}\",\"supplier_ids\":[\"${sup_id:-}\"],\"unit_price\":10.5,\"safety_stock\":3}")
 OM=$(head -c 80 /tmp/o); [ "$MC" = "201" ] && report "$MC" "POST /api/materials" ok || report "$MC" "POST /api/materials ($OM)" fail
 mat_id=$(jget "id")
 [ -n "$lvl_id" ] && {
@@ -83,7 +83,7 @@ mat_id=$(jget "id")
 IMP=$(api_post "/api/import/materials" "{\"csv\":\"编码,名称,规格型号,分类名称,级别名称,单位,单价,安全库存,默认供应商名称,存放位置,备注,初始数量\\nSMK-IMP-$(date +%s),冒烟导入物料,S-1,冒烟测试分类改,冒烟测试分级改,个,5,2,冒烟测试供应商,A区,导入测试,3\"}")
 [ "$IMP" = "200" ] && report "$IMP" "POST /api/import/materials" ok || report "$IMP" "POST /api/import/materials ($(head -c 120 /tmp/o))" fail
 [ -n "$mat_id" ] && {
-  PU=$(api_post "/api/materials/$mat_id" '{"name":"冒烟测试物料改"}')
+  PU=$(api_post "/api/materials/$mat_id" '{"name":"冒烟测试物料改","supplier_ids":[]}')
   [ "$PU" = "200" ] && report "$PU" "PUT /api/materials" ok || report "$PU" "PUT /api/materials (body=$(head -c 160 /tmp/o))" fail
 }
 

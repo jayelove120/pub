@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { EmptyState } from '@/components/empty-state';
@@ -48,7 +49,8 @@ interface Material {
   is_active: boolean;
   categories?: { name?: string } | null;
   levels?: { name?: string } | null;
-  default_supplier?: { name?: string } | null;
+  default_supplier?: { id?: string; name?: string } | null;
+  material_suppliers?: { supplier_id?: string; supplier?: { id?: string; name?: string } | null }[];
 }
 
 export default function MaterialsPage() {
@@ -70,8 +72,29 @@ export default function MaterialsPage() {
   const [importing, setImporting] = useState(false);
 
   const [form, setForm] = useState<Record<string, string>>({});
+  const [selSups, setSelSups] = useState<string[]>([]);
 
   const pageSize = 10;
+
+  // 从物料数据提取已关联的供应商 id 列表（兼容旧数据仅有默认供应商的情况）
+  const extractSupplierIds = (m: Material): string[] => {
+    const ids = (m.material_suppliers ?? [])
+      .map((ms) => ms.supplier?.id ?? ms.supplier_id)
+      .filter((x): x is string => !!x);
+    if (ids.length === 0 && m.default_supplier_id) return [m.default_supplier_id];
+    return [...new Set(ids)];
+  };
+
+  const toggleSupplier = (id: string, checked: boolean) => {
+    setSelSups((prev) => {
+      const next = checked ? [...prev, id] : prev.filter((x) => x !== id);
+      // 默认供应商被移出关联列表时，回退为剩余第一个
+      if (!next.includes(form.default_supplier_id ?? '')) {
+        setForm((f) => ({ ...f, default_supplier_id: next[0] ?? '' }));
+      }
+      return next;
+    });
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -109,11 +132,14 @@ export default function MaterialsPage() {
   const openCreate = () => {
     setEditing(null);
     setForm({ code: '', name: '', spec: '', category_id: '', level_id: '', unit: '个', unit_price: '0', safety_stock: '0', default_supplier_id: '', storage_location: '', remark: '' });
+    setSelSups([]);
     setOpen(true);
   };
 
   const openEdit = (m: Material) => {
     setEditing(m);
+    const ids = extractSupplierIds(m);
+    setSelSups(ids);
     setForm({
       code: m.code,
       name: m.name,
@@ -144,7 +170,8 @@ export default function MaterialsPage() {
         unit: form.unit || '个',
         unit_price: form.unit_price || '0',
         safety_stock: Number(form.safety_stock) || 0,
-        default_supplier_id: form.default_supplier_id || null,
+        default_supplier_id: selSups.includes(form.default_supplier_id ?? '') ? form.default_supplier_id : (selSups[0] ?? null),
+        supplier_ids: selSups,
         storage_location: form.storage_location || null,
         remark: form.remark || null,
       };
@@ -281,7 +308,27 @@ export default function MaterialsPage() {
                   <TableCell>{m.unit}</TableCell>
                   <TableCell className="text-right tabular-nums">¥{Number(m.unit_price).toFixed(2)}</TableCell>
                   <TableCell className="text-right tabular-nums">{m.safety_stock}</TableCell>
-                  <TableCell>{m.default_supplier?.name || '-'}</TableCell>
+                  <TableCell>
+                    {(() => {
+                      const linked = (m.material_suppliers ?? [])
+                        .map((ms) => ({ id: ms.supplier?.id ?? ms.supplier_id ?? '', name: ms.supplier?.name ?? '' }))
+                        .filter((x) => x.id && x.name);
+                      if (linked.length === 0) return m.default_supplier?.name || '-';
+                      return (
+                        <div className="flex max-w-[220px] flex-wrap gap-1">
+                          {linked.map((s) => (
+                            <Badge
+                              key={s.id}
+                              variant={s.id === m.default_supplier_id ? 'default' : 'outline'}
+                              className="max-w-[160px] truncate font-normal"
+                            >
+                              {s.name}
+                            </Badge>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </TableCell>
                   <TableCell>{m.storage_location || '-'}</TableCell>
                   <TableCell>
                     <Badge variant={m.is_active ? 'default' : 'secondary'}>{m.is_active ? '启用' : '停用'}</Badge>
@@ -374,19 +421,45 @@ export default function MaterialsPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label>关联供应商（可多选，来自供应商管理）</Label>
+                {sups.length === 0 ? (
+                  <p className="rounded-md border border-dashed border-neutral-300 px-3 py-2 text-[13px] text-neutral-400">
+                    暂无可用供应商，请先在「供应商管理」中新增
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 gap-1.5 rounded-md border border-neutral-200 p-2.5 sm:grid-cols-2">
+                    {sups.map((s) => (
+                      <label key={s.id} className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-[13px] hover:bg-neutral-50">
+                        <Checkbox
+                          checked={selSups.includes(s.id)}
+                          onCheckedChange={(c) => toggleSupplier(s.id, c === true)}
+                        />
+                        <span className="truncate">{s.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div className="space-y-1.5">
-                <Label>默认供应商</Label>
-                <Select value={form.default_supplier_id || 'none'} onValueChange={(v) => setForm({ ...form, default_supplier_id: v === 'none' ? '' : v })}>
+                <Label>默认供应商（出入库自动带出）</Label>
+                <Select
+                  value={form.default_supplier_id || 'none'}
+                  onValueChange={(v) => setForm({ ...form, default_supplier_id: v === 'none' ? '' : v })}
+                  disabled={selSups.length === 0}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="选择供应商" />
+                    <SelectValue placeholder={selSups.length === 0 ? '请先勾选关联供应商' : '选择默认供应商'} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">无</SelectItem>
-                    {sups.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name}
-                      </SelectItem>
-                    ))}
+                    {selSups.map((id) => {
+                      const s = sups.find((x) => x.id === id);
+                      return s ? (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}
+                        </SelectItem>
+                      ) : null;
+                    })}
                   </SelectContent>
                 </Select>
               </div>

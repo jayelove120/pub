@@ -5,7 +5,7 @@ import { requireAdmin, AuthError } from '@/lib/auth';
 import { writeOperationLog } from '@/lib/store';
 
 const MATERIAL_SELECT =
-  '*, categories:spare_part_categories(id, name), levels:spare_part_levels(id, name), default_supplier:suppliers(id, name), inventory(quantity, total_value)';
+  '*, categories:spare_part_categories(id, name), levels:spare_part_levels(id, name), default_supplier:suppliers(id, name), material_suppliers(supplier:suppliers(id, name)), inventory(quantity, total_value)';
 
 export async function GET(req: NextRequest) {
   try {
@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
       unit_price?: string | number;
       safety_stock?: number;
       default_supplier_id?: string;
+      supplier_ids?: string[];
       storage_location?: string;
       remark?: string;
       initial_quantity?: number;
@@ -86,6 +87,14 @@ export async function POST(req: NextRequest) {
     const unitPrice = Number(body.unit_price ?? 0) || 0;
     const initialQty = Number(body.initial_quantity ?? 0) || 0;
 
+    // 关联供应商：优先取 supplier_ids；未传时回退默认供应商
+    const supplierIds = Array.isArray(body.supplier_ids)
+      ? [...new Set(body.supplier_ids.filter((s) => typeof s === 'string' && s))]
+      : body.default_supplier_id
+        ? [body.default_supplier_id]
+        : [];
+    const defaultSupplierId = body.default_supplier_id || supplierIds[0] || null;
+
     const { data, error } = await client
       .from('materials')
       .insert({
@@ -97,7 +106,7 @@ export async function POST(req: NextRequest) {
         unit: body.unit || '个',
         unit_price: String(unitPrice),
         safety_stock: Number(body.safety_stock ?? 0) || 0,
-        default_supplier_id: body.default_supplier_id || null,
+        default_supplier_id: defaultSupplierId,
         storage_location: body.storage_location || null,
         remark: body.remark || null,
         is_active: true,
@@ -105,6 +114,14 @@ export async function POST(req: NextRequest) {
       .select()
       .single();
     if (error) throw new Error(error.message);
+
+    // 写入物料-供应商关联
+    if (supplierIds.length > 0) {
+      const { error: msErr } = await client.from('material_suppliers').insert(
+        supplierIds.map((sid) => ({ material_id: data.id, supplier_id: sid })),
+      );
+      if (msErr) throw new Error(`关联供应商失败: ${msErr.message}`);
+    }
 
     // 初始化库存记录
     if (initialQty > 0) {
